@@ -1,6 +1,6 @@
 <?php
 /**
- * OpenID library loader for consumers
+ * OpenID library loader for servers
  */
 
 $openid_path = dirname(dirname(__FILE__)) . '/vendors/php-openid/';

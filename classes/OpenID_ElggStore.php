@@ -26,6 +26,7 @@ class OpenID_ElggStore extends Auth_OpenID_OpenIDStore {
 		$object->secret = base64_encode($association->secret);
 		$object->issued = $association->issued;
 		$object->lifetime = $association->lifetime;
+		$object->expires = $object->issued + $object->lifetime;
 		$object->assoc_type = $association->assoc_type;
 
 		$object->save();
@@ -132,7 +133,7 @@ class OpenID_ElggStore extends Auth_OpenID_OpenIDStore {
 			'type' => 'object',
 			'subtype' => 'openid_client::association',
 			'metadata_name_value_pairs' => array(
-				array('name' => 'lifetime', 'value' => time(), 'operand' => '<')
+				array('name' => 'expires', 'value' => time(), 'operand' => '<')
 			),
 			'limit' => 0,
 		);

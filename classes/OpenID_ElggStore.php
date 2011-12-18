@@ -150,7 +150,7 @@ class OpenID_ElggStore extends Auth_OpenID_OpenIDStore {
 	/**
 	 * Can we use this nonce?
 	 *
-	 * Checks time skew and replay
+	 * Checks for time skew and replay attacks
 	 *
 	 * @param type $server_url The identity server endpoint
 	 * @param type $timestamp  The timestamp from the nonce
@@ -164,8 +164,49 @@ class OpenID_ElggStore extends Auth_OpenID_OpenIDStore {
 			return false;
 		}
 
-		// @todo
-		// we should check if nonce has been used before to guard against replays
+		if (!$this->addNonce($server_url, $timestamp, $salt)) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Store the nonce to prevent replay attacks
+	 *
+	 * @param string $server_url
+	 * @param string $timestamp
+	 * @param string $salt
+	 * @return bool
+	 */
+	protected function addNonce($server_url, $timestamp, $salt) {
+		global $Auth_OpenID_SKEW;
+
+		$identifier = md5($server_url . $timestamp . $salt);
+
+		// was the nonce already used
+		$count = elgg_get_entities_from_metadata(array(
+			'type' => 'object',
+			'subtype' => 'openid_client::nonce',
+			'metadata_name' => 'identifier',
+			'metadata_value' => $identifier,
+			'count' => true,
+		));
+		if ($count) {
+			return false;
+		}
+
+		// add it
+		$object = new ElggObject();
+		$object->subtype = 'openid_client::nonce';
+		$object->owner_guid = 0;
+		$object->container_guid = 0;
+		$object->access_id = ACCESS_PUBLIC;
+		$object->server_url = $server_url;
+		$object->expires = $timestamp + $Auth_OpenID_SKEW;
+		$object->identifier = $identifier;
+		$object->save();
+
 		return true;
 	}
 
@@ -175,12 +216,22 @@ class OpenID_ElggStore extends Auth_OpenID_OpenIDStore {
 	 * @return int
 	 */
 	public function cleanupNonces() {
-		global $Auth_OpenID_SKEW;
-		$cutoff = time() - $Auth_OpenID_SKEW;
+		$options = array(
+			'type' => 'object',
+			'subtype' => 'openid_client::nonce',
+			'metadata_name_value_pairs' => array(
+				array('name' => 'expires', 'value' => time(), 'operand' => '<')
+			),
+			'limit' => 0,
+		);
+		$nonces = elgg_get_entities_from_metadata($options);
+		$total = count($nonces);
 
-		// @todo
+		foreach ($nonces as $nonce) {
+			$nonce->delete();
+		}
 
-		return 0;
+		return $total;
 	}
 
 	/**

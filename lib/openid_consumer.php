@@ -12,3 +12,4 @@ require_once 'Auth/OpenID.php';
 require_once 'Auth/OpenID/Consumer.php';
 require_once 'Auth/OpenID/SReg.php';
 require_once 'Auth/OpenID/AX.php';
+require_once 'Auth/OpenID/Interface.php';
